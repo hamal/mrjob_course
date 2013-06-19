@@ -23,15 +23,23 @@ def review_id(obj):
 class MRUniqueReviewJob(MRJob):
 
     INPUT_PROTOCOL = JSONValueProtocol
+    OUTPUT_PROTOCOL = RawValueProtocol
 
     def steps(self):
-        return [self.mr(mapper=self.mapper_review_words)]
+        return [self.mr(mapper=self.mapper_review_words, reducer=self.reducer_sum_counts_per_review)]
 
     def mapper_review_words(self, _, obj):
+        key = review_id(obj)
         if obj['type'] == 'review':
             for word in obj['text'].split():
                 if word.strip():
-                    yield word, review_id(obj)
+                    yield key, (word, 1)
+
+    def reducer_sum_counts_per_review(self, key, values):
+        total = 0
+        for word, value in values:
+            total += value
+        yield key, values[0][0], sum(values[0][1]))
 
 
 if __name__ == '__main__':
